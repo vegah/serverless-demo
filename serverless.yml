@@ -1,0 +1,62 @@
+service: serverless-demo 
+
+provider:
+  name: aws
+  runtime: nodejs8.10
+  region: eu-west-1
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      # Restrict our IAM role permissions to
+      # the specific table for the stage
+      Resource:
+        - "Fn::GetAtt": [ DemoTable, Arn ]
+  environment:
+      tablename: ${self:custom.tablename}
+
+custom:
+  tablename: serverlessdemo-${opt:stage}
+
+functions:
+  getstuff:
+    handler: handler.getstuff
+    events:
+      - http:
+          path: stuff
+          method: get
+  poststuff:
+    handler: handler.poststuff
+    events:
+      - http:
+          path: stuff
+          method: post
+
+#    Define function environment variables here
+#    environment:
+#      variable2: value2
+
+# you can add CloudFormation resource templates here
+resources:
+  Resources:
+    DemoTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tablename}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: time
+            AttributeType: N
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+          - AttributeName: time
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
